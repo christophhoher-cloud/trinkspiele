@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
   <meta charset="UTF-8">
@@ -10,7 +9,7 @@
   <meta name="theme-color" content="#1a1a2e">
   <meta name="mobile-web-app-capable" content="yes">
   <title>🍺 Trinkspiele</title>
-
+  
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html { height: 100%; background: #1a1a2e; }
@@ -37,17 +36,14 @@
     button:active { transform: scale(0.95); }
     .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   </style>
-
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-
 </head>
 <body>
   <div id="root"></div>
-
+  
   <script type="text/babel">
     const { useState, useRef, useCallback } = React;
 
@@ -182,7 +178,21 @@
       return (
         <div style={{padding: 20, maxWidth: 450, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
           <GameHeader title="🎲 MEIERN (Mäxle) 🍺" onBack={onBack} />
-          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={() => setPhase('rolling')} />}
+          {phase === 'setup' && <>
+            <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+              <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 10, textAlign: 'center'}}>📜 Spielregeln</h3>
+              <ul style={{fontSize: '0.9rem', lineHeight: 1.6, paddingLeft: 20, margin: 0, opacity: 0.9}}>
+                <li>Würfle und schau dir geheim dein Ergebnis an</li>
+                <li>Sage einen Wert an - du darfst lügen!</li>
+                <li>Der nächste Spieler muss glauben oder anzweifeln</li>
+                <li>Glaubt er, muss er höher ansagen</li>
+                <li>Zweifelt er und du hast gelogen → du trinkst</li>
+                <li>Zweifelt er und du hast nicht gelogen → er trinkt</li>
+                <li><strong>Mäxchen (21)</strong> ist der höchste Wurf = 2x trinken!</li>
+              </ul>
+            </div>
+            <PlayerSetup players={players} setPlayers={setPlayers} onStart={() => setPhase('rolling')} />
+          </>}
           {phase !== 'setup' && <>
             <PlayerBar players={players} current={cur} />
             {prev && phase !== 'result' && <div style={{textAlign: 'center', padding: 12, background: 'rgba(255,215,0,0.15)', borderRadius: 12, marginBottom: 15}}>Letzte Ansage: <strong style={{color: '#ffd700'}}>{fmtDice(prev)}</strong></div>}
@@ -364,7 +374,20 @@
       return (
         <div style={{padding: 20, maxWidth: 450, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
           <GameHeader title="👑 KINGS CUP 🍺" onBack={onBack} />
-          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />}
+          {phase === 'setup' && <>
+            <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+              <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 10, textAlign: 'center'}}>📜 Spielregeln</h3>
+              <ul style={{fontSize: '0.9rem', lineHeight: 1.6, paddingLeft: 20, margin: 0, opacity: 0.9}}>
+                <li>Reihum zieht jeder eine Karte</li>
+                <li>Jede Karte hat eine Aufgabe/Regel</li>
+                <li>Führe die Aufgabe aus oder trinke!</li>
+                <li>Bei <strong>König</strong>: Gieße etwas in den Kings Cup</li>
+                <li>Wer den <strong>4. König</strong> zieht, trinkt den Kings Cup aus!</li>
+                <li>Spiel endet wenn alle Karten gezogen sind</li>
+              </ul>
+            </div>
+            <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />
+          </>}
           {phase !== 'setup' && <>
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 15, padding: 12, background: 'rgba(0,0,0,0.3)', borderRadius: 12}}>
               <span>👑 Kings: {kings}/4</span>
@@ -439,7 +462,20 @@
       return (
         <div style={{padding: 20, maxWidth: 450, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
           <GameHeader title="🚌 BUSFAHRER 🍺" onBack={onBack} />
-          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />}
+          {phase === 'setup' && <>
+            <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+              <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 10, textAlign: 'center'}}>📜 Spielregeln</h3>
+              <ul style={{fontSize: '0.9rem', lineHeight: 1.6, paddingLeft: 20, margin: 0, opacity: 0.9}}>
+                <li><strong>Runde 1:</strong> Rot oder Schwarz?</li>
+                <li><strong>Runde 2-4:</strong> Höher oder Niedriger?</li>
+                <li>Richtig → weiter zur nächsten Runde</li>
+                <li>Falsch → trinke (Streak+1) Schlucke</li>
+                <li><strong>4x hintereinander richtig</strong> = geschafft!</li>
+                <li>Bei Fehler startest du wieder bei Runde 1</li>
+              </ul>
+            </div>
+            <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />
+          </>}
           {phase === 'playing' && <>
             <PlayerBar players={players} current={cur} />
             <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 25, textAlign: 'center'}}>
@@ -469,12 +505,19 @@
       const [selected, setSelected] = useState(null);
       const [drinks, setDrinks] = useState(0);
       const [msg, setMsg] = useState('');
+      const [mode, setMode] = useState('normal'); // 'normal' oder 'atom'
       const ROWS = 5;
 
       const start = () => {
         let d = createDeck();
         const pyr = [];
-        for (let r = 0; r < ROWS; r++) { const rowCards = []; for (let i = 0; i < ROWS - r; i++) rowCards.push({...d.pop(), revealed: false}); pyr.push(rowCards); }
+        for (let r = 0; r < ROWS; r++) { 
+          const rowCards = []; 
+          // Normal: 5-4-3-2-1, Atom: 1-2-3-4-5
+          const cardCount = mode === 'normal' ? (ROWS - r) : (r + 1);
+          for (let i = 0; i < cardCount; i++) rowCards.push({...d.pop(), revealed: false}); 
+          pyr.push(rowCards); 
+        }
         setPyramid(pyr);
         const h = {}; players.forEach(p => { h[p.name] = [d.pop(), d.pop(), d.pop(), d.pop()]; }); setHands(h);
         setPhase('playing'); setMsg('Tippe auf eine Karte!');
@@ -510,11 +553,49 @@
 
       return (
         <div style={{padding: 15, maxWidth: 500, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
-          <GameHeader title="🃏 PYRAMIDE 🍺" onBack={onBack} />
-          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />}
+          <GameHeader title={mode === 'atom' ? "☢️ ATOM-PYRAMIDE 🍺" : "🃏 PYRAMIDE 🍺"} onBack={onBack} />
+          {phase === 'setup' && <>
+            <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+              <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 10, textAlign: 'center'}}>📜 Spielregeln</h3>
+              <ul style={{fontSize: '0.9rem', lineHeight: 1.6, paddingLeft: 20, margin: 0, opacity: 0.9}}>
+                <li>Jeder bekommt 4 Handkarten</li>
+                <li>Decke Karten der Pyramide auf (unten → oben)</li>
+                <li>Hast du den gleichen Wert auf der Hand?</li>
+                <li>Lege die Karte ab und verteile Schlucke!</li>
+                <li><strong>Reihe 1:</strong> 1 Schluck, <strong>Reihe 5:</strong> 5 Schlucke</li>
+                <li>Du kannst auch bluffen! 😏</li>
+              </ul>
+            </div>
+            
+            {/* Spielmodus Auswahl */}
+            <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+              <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 15, textAlign: 'center'}}>Spielmodus</h3>
+              <div style={{display: 'flex', gap: 10}}>
+                <button 
+                  onClick={() => setMode('normal')} 
+                  style={{flex: 1, padding: 15, background: mode === 'normal' ? 'linear-gradient(135deg, #ffd700, #ff8c00)' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 12, color: mode === 'normal' ? '#1a1a1a' : '#fff', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center'}}
+                >
+                  <div style={{fontSize: '1.5rem', marginBottom: 5}}>🔺</div>
+                  <div>Normal</div>
+                  <div style={{fontSize: '0.7rem', opacity: 0.8, marginTop: 3}}>5-4-3-2-1</div>
+                </button>
+                <button 
+                  onClick={() => setMode('atom')} 
+                  style={{flex: 1, padding: 15, background: mode === 'atom' ? 'linear-gradient(135deg, #ff6b6b, #ee5a24)' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 12, color: mode === 'atom' ? '#fff' : '#fff', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center'}}
+                >
+                  <div style={{fontSize: '1.5rem', marginBottom: 5}}>☢️</div>
+                  <div>Atom</div>
+                  <div style={{fontSize: '0.7rem', opacity: 0.8, marginTop: 3}}>1-2-3-4-5</div>
+                </button>
+              </div>
+              {mode === 'atom' && <p style={{textAlign: 'center', marginTop: 12, fontSize: '0.85rem', color: '#ff6b6b'}}>⚠️ Vorsicht! 5 Karten für 5 Schlucke!</p>}
+            </div>
+            
+            <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />
+          </>}
           {phase !== 'setup' && <>
             <PlayerBar players={players} />
-            <div style={{textAlign: 'center', padding: 12, background: 'rgba(255,215,0,0.15)', borderRadius: 12, marginBottom: 15}}>{msg}</div>
+            <div style={{textAlign: 'center', padding: 12, background: mode === 'atom' ? 'rgba(255,107,107,0.2)' : 'rgba(255,215,0,0.15)', borderRadius: 12, marginBottom: 15}}>{msg}</div>
             <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 15}}>
               <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8}}>
                 {[...pyramid].reverse().map((rowCards, displayIdx) => {
@@ -568,6 +649,16 @@
       if (phase === 'setup') return (
         <div style={{padding: 20, minHeight: '100vh', paddingBottom: 40}}>
           <GameHeader title="⚡ REAKTIONS-DUELL 🍺" onBack={onBack} />
+          <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+            <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 10, textAlign: 'center'}}>📜 Spielregeln</h3>
+            <ul style={{fontSize: '0.9rem', lineHeight: 1.6, paddingLeft: 20, margin: 0, opacity: 0.9}}>
+              <li>Jeder Spieler bekommt einen Bereich auf dem Bildschirm</li>
+              <li>🔴 <strong>ROT</strong> = Warten! Nicht tippen!</li>
+              <li>🟢 <strong>GRÜN</strong> = So schnell wie möglich tippen!</li>
+              <li>Wer zu früh tippt → 2 Schlucke Strafe!</li>
+              <li>Der Langsamste (oder alle außer dem Schnellsten) trinkt</li>
+            </ul>
+          </div>
           <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
             <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 15, textAlign: 'center'}}>Spielmodus</h3>
             <div style={{display: 'flex', gap: 10}}>
@@ -692,6 +783,5 @@
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
-
 </body>
 </html>
