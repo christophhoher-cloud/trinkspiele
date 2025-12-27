@@ -1,620 +1,491 @@
 <!DOCTYPE html>
+
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Trinkspiele">
   <meta name="theme-color" content="#1a1a2e">
   <meta name="mobile-web-app-capable" content="yes">
   <title>🍺 Trinkspiele</title>
-  
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="data:application/json,{
-    &quot;name&quot;: &quot;Trinkspiele Sammlung&quot;,
-    &quot;short_name&quot;: &quot;Trinkspiele&quot;,
-    &quot;start_url&quot;: &quot;.&quot;,
-    &quot;display&quot;: &quot;standalone&quot;,
-    &quot;background_color&quot;: &quot;%231a1a2e&quot;,
-    &quot;theme_color&quot;: &quot;%231a1a2e&quot;,
-    &quot;orientation&quot;: &quot;portrait&quot;
-  }">
-  
-  <!-- Apple Touch Icon -->
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231a1a2e' width='100' height='100' rx='20'/><text y='65' x='50' text-anchor='middle' font-size='50'>🍺</text></svg>">
-  
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+    html { 
+      height: 100%;
+      background: #1a1a2e;
+    }
     body { 
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background-attachment: fixed;
       color: #fff;
-      touch-action: manipulation;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #root {
+      min-height: 100vh;
     }
     @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+    @keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 75%{transform:rotate(5deg)} }
+    
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 2px; }
+    
+    button:active { transform: scale(0.95); }
+    
+    .no-select {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
   </style>
-  
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
 </head>
 <body>
   <div id="root"></div>
-  
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
 
-    // ========== UTILS ==========
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
     const SUITS = ['♠','♥','♦','♣'];
     const SUIT_COLORS = {'♠':'#1a1a2e','♥':'#e74c3c','♦':'#e74c3c','♣':'#1a1a2e'};
     const VALUES = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
     
     const createDeck = () => {
       const deck = [];
-      SUITS.forEach(s => VALUES.forEach(v => deck.push({suit:s,value:v,id:v+s})));
+      SUITS.forEach(s => VALUES.forEach(v => deck.push({suit:s, value:v, id:v+s+Math.random()})));
       return shuffle([...deck]);
     };
     
     const shuffle = arr => {
       const a = [...arr];
-      for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+      for(let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
       return a;
     };
 
-    // ========== COMPONENTS ==========
-    const Card = ({card,faceUp=true,small,onClick,highlight}) => {
-      const w = small?45:70, h = small?65:100, fs = small?'0.8rem':'1.2rem';
-      if(!faceUp) return (
-        <div onClick={onClick} style={{width:w,height:h,background:'linear-gradient(135deg,#2c3e50,#1a252f)',borderRadius:8,border:'2px solid #34495e',cursor:onClick?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:highlight?'0 0 20px #ffd700':'0 3px 10px rgba(0,0,0,0.3)',transform:highlight?'scale(1.05)':'scale(1)',transition:'all 0.2s'}}>
-          <div style={{width:'80%',height:'80%',background:'repeating-linear-gradient(45deg,#34495e,#34495e 5px,#2c3e50 5px,#2c3e50 10px)',borderRadius:4}}/>
-        </div>
-      );
+    const Card = ({card, faceUp = true, small, onClick, highlight}) => {
+      const w = small ? 50 : 75;
+      const h = small ? 72 : 108;
+      const fs = small ? '1rem' : '1.4rem';
+      
+      if (!faceUp) {
+        return (
+          <div onClick={onClick} className="no-select" style={{width: w, height: h, background: 'linear-gradient(135deg, #2c3e50, #1a252f)', borderRadius: 10, border: '2px solid #34495e', cursor: onClick ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: highlight ? '0 0 20px #ffd700' : '0 3px 10px rgba(0,0,0,0.3)', transform: highlight ? 'scale(1.05)' : 'scale(1)', transition: 'all 0.2s', flexShrink: 0}}>
+            <div style={{width: '80%', height: '80%', background: 'repeating-linear-gradient(45deg, #34495e, #34495e 5px, #2c3e50 5px, #2c3e50 10px)', borderRadius: 6}}/>
+          </div>
+        );
+      }
+      
       return (
-        <div onClick={onClick} style={{width:w,height:h,background:'linear-gradient(135deg,#fff,#f0f0f0)',borderRadius:8,border:highlight?'3px solid #ffd700':'2px solid #ddd',cursor:onClick?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:SUIT_COLORS[card.suit],fontWeight:'bold',boxShadow:highlight?'0 0 25px rgba(255,215,0,0.8)':'0 3px 10px rgba(0,0,0,0.2)',transform:highlight?'scale(1.1)':'scale(1)',transition:'all 0.3s'}}>
-          <span style={{fontSize:fs}}>{card.value}</span>
-          <span style={{fontSize:small?'1rem':'1.5rem'}}>{card.suit}</span>
+        <div onClick={onClick} className="no-select" style={{width: w, height: h, background: 'linear-gradient(135deg, #fff, #f0f0f0)', borderRadius: 10, border: highlight ? '3px solid #ffd700' : '2px solid #ddd', cursor: onClick ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: SUIT_COLORS[card.suit], fontWeight: 'bold', boxShadow: highlight ? '0 0 25px rgba(255,215,0,0.8)' : '0 3px 10px rgba(0,0,0,0.2)', transform: highlight ? 'scale(1.05)' : 'scale(1)', transition: 'all 0.2s', flexShrink: 0}}>
+          <span style={{fontSize: fs}}>{card.value}</span>
+          <span style={{fontSize: small ? '1.2rem' : '1.8rem'}}>{card.suit}</span>
         </div>
       );
     };
 
-    const Dice = ({value,rolling,size=60}) => {
-      const dots = {1:[[50,50]],2:[[25,25],[75,75]],3:[[25,25],[50,50],[75,75]],4:[[25,25],[75,25],[25,75],[75,75]],5:[[25,25],[75,25],[50,50],[25,75],[75,75]],6:[[25,25],[75,25],[25,50],[75,50],[25,75],[75,75]]};
+    const Dice = ({value, rolling, size = 60}) => {
+      const dots = {1: [[50,50]], 2: [[25,25],[75,75]], 3: [[25,25],[50,50],[75,75]], 4: [[25,25],[75,25],[25,75],[75,75]], 5: [[25,25],[75,25],[50,50],[25,75],[75,75]], 6: [[25,25],[75,25],[25,50],[75,50],[25,75],[75,75]]};
       return (
-        <div style={{width:size,height:size,background:'linear-gradient(135deg,#fffef0,#f5f0dc)',borderRadius:size*0.15,boxShadow:'0 4px 15px rgba(0,0,0,0.3)',position:'relative',transform:rolling?`rotate(${Math.random()*360}deg)`:'rotate(0deg)'}}>
-          {!rolling && dots[value]?.map((p,i) => <div key={i} style={{position:'absolute',width:size*0.18,height:size*0.18,background:'radial-gradient(circle at 30% 30%,#4a4a4a,#1a1a1a)',borderRadius:'50%',left:`${p[0]}%`,top:`${p[1]}%`,transform:'translate(-50%,-50%)'}}/>)}
+        <div className="no-select" style={{width: size, height: size, background: 'linear-gradient(135deg, #fffef0, #f5f0dc)', borderRadius: size * 0.15, boxShadow: '0 4px 15px rgba(0,0,0,0.3)', position: 'relative', animation: rolling ? 'shake 0.1s infinite' : 'none'}}>
+          {!rolling && dots[value]?.map((p, i) => (<div key={i} style={{position: 'absolute', width: size * 0.18, height: size * 0.18, background: 'radial-gradient(circle at 30% 30%, #4a4a4a, #1a1a1a)', borderRadius: '50%', left: `${p[0]}%`, top: `${p[1]}%`, transform: 'translate(-50%, -50%)'}}/>))}
         </div>
       );
     };
 
-    const Btn = ({children,onClick,disabled,primary,danger,style={}}) => (
-      <button onClick={onClick} disabled={disabled} style={{padding:'12px 25px',border:'none',borderRadius:12,fontWeight:'bold',cursor:disabled?'not-allowed':'pointer',background:disabled?'rgba(255,255,255,0.1)':danger?'linear-gradient(135deg,#e74c3c,#c0392b)':primary?'linear-gradient(135deg,#4CAF50,#2E7D32)':'linear-gradient(135deg,#ffd700,#ff8c00)',color:primary||danger?'#fff':'#1a1a1a',fontSize:'1rem',touchAction:'manipulation',...style}}>{children}</button>
+    const Btn = ({children, onClick, disabled, primary, danger, style = {}}) => (
+      <button onClick={onClick} disabled={disabled} className="no-select" style={{padding: '14px 28px', border: 'none', borderRadius: 12, fontWeight: 'bold', cursor: disabled ? 'not-allowed' : 'pointer', background: disabled ? 'rgba(255,255,255,0.1)' : danger ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : primary ? 'linear-gradient(135deg, #4CAF50, #2E7D32)' : 'linear-gradient(135deg, #ffd700, #ff8c00)', color: primary || danger ? '#fff' : '#1a1a1a', fontSize: '1rem', transition: 'transform 0.1s', ...style}}>{children}</button>
     );
 
-    const PlayerSetup = ({players,setPlayers,onStart,min=2,max=10}) => {
-      const [name,setName] = useState('');
-      const add = () => {if(name.trim()&&players.length<max){setPlayers([...players,{name:name.trim(),drinks:0}]);setName('');}};
+    const PlayerSetup = ({players, setPlayers, onStart, min = 2, max = 10}) => {
+      const [name, setName] = useState('');
+      const inputRef = useRef(null);
+      const add = () => { if (name.trim() && players.length < max) { setPlayers([...players, {name: name.trim(), drinks: 0}]); setName(''); inputRef.current?.focus(); } };
       return (
-        <div style={{background:'rgba(0,0,0,0.4)',borderRadius:20,padding:20,maxWidth:400,margin:'0 auto'}}>
-          <h2 style={{textAlign:'center',color:'#ffd700',marginBottom:15}}>Spieler</h2>
-          <div style={{display:'flex',gap:10,marginBottom:15}}>
-            <input type="text" value={name} onChange={e=>setName(e.target.value)} onKeyPress={e=>e.key==='Enter'&&add()} placeholder="Name..." style={{flex:1,padding:12,borderRadius:10,border:'none',background:'rgba(255,255,255,0.1)',color:'#fff',fontSize:'1rem'}}/>
+        <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 20, maxWidth: 400, margin: '0 auto'}}>
+          <h2 style={{textAlign: 'center', color: '#ffd700', marginBottom: 15}}>Spieler ({players.length})</h2>
+          <div style={{display: 'flex', gap: 10, marginBottom: 15}}>
+            <input ref={inputRef} type="text" value={name} onChange={e => setName(e.target.value)} onKeyPress={e => e.key === 'Enter' && add()} placeholder="Name eingeben..." style={{flex: 1, padding: 14, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: '1rem', outline: 'none'}}/>
             <Btn onClick={add}>+</Btn>
           </div>
-          {players.map((p,i) => (
-            <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'10px 15px',background:'rgba(255,255,255,0.05)',borderRadius:10,marginBottom:8}}>
-              <span>🎮 {p.name}</span>
-              <button onClick={()=>setPlayers(players.filter((_,idx)=>idx!==i))} style={{background:'rgba(255,0,0,0.3)',border:'none',color:'#ff6b6b',padding:'5px 10px',borderRadius:5,cursor:'pointer'}}>✕</button>
-            </div>
-          ))}
-          <Btn onClick={onStart} disabled={players.length<min} primary style={{width:'100%',marginTop:15}}>🎮 Start</Btn>
+          <div style={{maxHeight: 200, overflowY: 'auto', marginBottom: 15}}>
+            {players.map((p, i) => (
+              <div key={i} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', background: 'rgba(255,255,255,0.08)', borderRadius: 10, marginBottom: 8}}>
+                <span>🎮 {p.name}</span>
+                <button onClick={() => setPlayers(players.filter((_, idx) => idx !== i))} style={{background: 'rgba(255,100,100,0.3)', border: 'none', color: '#ff6b6b', padding: '8px 12px', borderRadius: 8, cursor: 'pointer', fontSize: '1rem'}}>✕</button>
+              </div>
+            ))}
+          </div>
+          {players.length < min && <p style={{textAlign: 'center', color: '#ff6b6b', marginBottom: 10, fontSize: '0.9rem'}}>Mindestens {min} Spieler benötigt</p>}
+          <Btn onClick={onStart} disabled={players.length < min} primary style={{width: '100%', padding: 16, fontSize: '1.1rem'}}>🎮 Spiel starten ({players.length} Spieler)</Btn>
         </div>
       );
     };
 
-    // ========== MEIERN ==========
-    const getDiceVal = (d1,d2) => Math.max(d1,d2)*10+Math.min(d1,d2);
-    const getValRank = v => v===21?1000:(Math.floor(v/10)===v%10?100+Math.floor(v/10):v);
-    const fmtDice = v => v===21?"MÄXCHEN! 🔥":(Math.floor(v/10)===v%10?`${Math.floor(v/10)}er Pasch`:v.toString());
-    const ALL_VALS = [31,32,41,42,43,51,52,53,54,61,62,63,64,65,11,22,33,44,55,66,21].sort((a,b)=>getValRank(a)-getValRank(b));
+    const GameHeader = ({title, onBack}) => (
+      <div style={{marginBottom: 15}}>
+        <button onClick={onBack} style={{background: 'none', border: 'none', color: '#ffd700', fontSize: '1.2rem', cursor: 'pointer', padding: '10px 0'}}>← Zurück</button>
+        <h1 style={{textAlign: 'center', color: '#ffd700', fontSize: '1.8rem', marginTop: 5}}>{title}</h1>
+      </div>
+    );
+
+    const PlayerBar = ({players, current}) => (
+      <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 15, padding: 10, background: 'rgba(0,0,0,0.2)', borderRadius: 12}}>
+        {players.map((p, i) => (<div key={i} style={{padding: '8px 14px', background: i === current ? 'linear-gradient(135deg, #ffd700, #ff8c00)' : 'rgba(255,255,255,0.1)', borderRadius: 20, color: i === current ? '#1a1a1a' : '#fff', fontWeight: i === current ? 'bold' : 'normal', fontSize: '0.95rem'}}>{p.name}: 🍺{p.drinks}</div>))}
+      </div>
+    );
+
+    // MEIERN
+    const getDiceVal = (d1, d2) => Math.max(d1, d2) * 10 + Math.min(d1, d2);
+    const getValRank = v => v === 21 ? 1000 : (Math.floor(v/10) === v%10 ? 100 + Math.floor(v/10) : v);
+    const fmtDice = v => v === 21 ? "MÄXCHEN! 🔥" : (Math.floor(v/10) === v%10 ? `${Math.floor(v/10)}er Pasch` : v.toString());
+    const ALL_VALS = [31,32,41,42,43,51,52,53,54,61,62,63,64,65,11,22,33,44,55,66,21].sort((a,b) => getValRank(a) - getValRank(b));
 
     const Meiern = ({onBack}) => {
-      const [phase,setPhase] = useState('setup');
-      const [players,setPlayers] = useState([]);
-      const [cur,setCur] = useState(0);
-      const [dice,setDice] = useState([1,1]);
-      const [rolled,setRolled] = useState(null);
-      const [announced,setAnnounced] = useState(null);
-      const [prev,setPrev] = useState(null);
-      const [looking,setLooking] = useState(false);
-      const [rolling,setRolling] = useState(false);
-      const [result,setResult] = useState(null);
+      const [phase, setPhase] = useState('setup');
+      const [players, setPlayers] = useState([]);
+      const [cur, setCur] = useState(0);
+      const [dice, setDice] = useState([1, 1]);
+      const [rolled, setRolled] = useState(null);
+      const [announced, setAnnounced] = useState(null);
+      const [prev, setPrev] = useState(null);
+      const [looking, setLooking] = useState(false);
+      const [rolling, setRolling] = useState(false);
+      const [result, setResult] = useState(null);
 
       const roll = () => {
-        setRolling(true);setLooking(false);
-        let c=0;
-        const iv = setInterval(()=>{
-          setDice([Math.floor(Math.random()*6)+1,Math.floor(Math.random()*6)+1]);
-          if(++c>15){clearInterval(iv);const d1=Math.floor(Math.random()*6)+1,d2=Math.floor(Math.random()*6)+1;setDice([d1,d2]);setRolled(getDiceVal(d1,d2));setRolling(false);setPhase('looking');}
-        },80);
+        setRolling(true); setLooking(false);
+        let count = 0;
+        const interval = setInterval(() => {
+          setDice([Math.floor(Math.random()*6)+1, Math.floor(Math.random()*6)+1]);
+          if (++count > 15) { clearInterval(interval); const d1 = Math.floor(Math.random()*6)+1, d2 = Math.floor(Math.random()*6)+1; setDice([d1, d2]); setRolled(getDiceVal(d1, d2)); setRolling(false); setPhase('looking'); }
+        }, 80);
       };
-
-      const announce = v => {setAnnounced(v);setPhase('doubting');};
-      const believe = () => {setPrev(announced);setCur((cur+1)%players.length);setAnnounced(null);setRolled(null);setPhase('rolling');};
-      const doubt = () => {
-        const lied = getValRank(rolled)<getValRank(announced);
-        const loserIdx = lied?cur:(cur+1)%players.length;
-        const drinks = announced===21?2:1;
-        setPlayers(players.map((p,i)=>i===loserIdx?{...p,drinks:p.drinks+drinks}:p));
-        setResult({lied,loser:players[loserIdx].name,drinks,actual:rolled,announced});
-        setPhase('result');
-      };
-      const nextRound = () => {setCur(result.lied?cur:(cur+1)%players.length);setPrev(null);setAnnounced(null);setRolled(null);setResult(null);setPhase('rolling');};
-      const valid = prev?ALL_VALS.filter(v=>getValRank(v)>getValRank(prev)):ALL_VALS;
+      const announce = v => { setAnnounced(v); setPhase('doubting'); };
+      const believe = () => { setPrev(announced); setCur((cur + 1) % players.length); setAnnounced(null); setRolled(null); setPhase('rolling'); };
+      const doubt = () => { const lied = getValRank(rolled) < getValRank(announced); const loserIdx = lied ? cur : (cur + 1) % players.length; const drinks = announced === 21 ? 2 : 1; setPlayers(players.map((p, i) => i === loserIdx ? {...p, drinks: p.drinks + drinks} : p)); setResult({lied, loser: players[loserIdx].name, drinks, actual: rolled, announced}); setPhase('result'); };
+      const nextRound = () => { const nextPlayer = result.lied ? cur : (cur + 1) % players.length; setCur(nextPlayer); setPrev(null); setAnnounced(null); setRolled(null); setResult(null); setPhase('rolling'); };
+      const validOptions = prev ? ALL_VALS.filter(v => getValRank(v) > getValRank(prev)) : ALL_VALS;
 
       return (
-        <div style={{padding:20,maxWidth:450,margin:'0 auto',minHeight:'100vh'}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:'#ffd700',fontSize:'1.2rem',cursor:'pointer',marginBottom:10}}>← Zurück</button>
-          <h1 style={{textAlign:'center',color:'#ffd700'}}>🎲 MEIERN (Mäxle) 🍺</h1>
-          
-          {phase==='setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={()=>setPhase('rolling')}/>}
-          
-          {phase!=='setup' && <>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center',margin:'15px 0'}}>
-              {players.map((p,i)=><div key={i} style={{padding:'6px 12px',background:i===cur?'linear-gradient(135deg,#ffd700,#ff8c00)':'rgba(255,255,255,0.1)',borderRadius:15,color:i===cur?'#1a1a1a':'#fff'}}>{p.name}: 🍺{p.drinks}</div>)}
-            </div>
-            {prev && phase!=='result' && <div style={{textAlign:'center',padding:10,background:'rgba(255,215,0,0.1)',borderRadius:10,marginBottom:15}}>Letzte Ansage: <strong style={{color:'#ffd700'}}>{fmtDice(prev)}</strong></div>}
-            
-            <div style={{background:'rgba(0,0,0,0.4)',borderRadius:20,padding:25,textAlign:'center'}}>
-              {phase==='rolling' && <>
-                <h2 style={{color:'#ffd700'}}>{players[cur]?.name} ist dran!</h2>
-                <Btn onClick={roll} danger style={{padding:'20px 50px',fontSize:'1.3rem',marginTop:20}}>🎲 WÜRFELN</Btn>
-              </>}
-              
-              {phase==='looking' && <>
-                <h2 style={{color:'#ffd700'}}>{players[cur]?.name} - Dein Wurf:</h2>
-                <div style={{display:'flex',justifyContent:'center',gap:20,margin:'20px 0',filter:looking?'none':'blur(20px)'}}>
-                  <Dice value={dice[0]} rolling={rolling}/>
-                  <Dice value={dice[1]} rolling={rolling}/>
-                </div>
-                {looking && <div style={{fontSize:'1.5rem',color:rolled===21?'#ff6b6b':'#ffd700',marginBottom:15}}>{fmtDice(rolled)}</div>}
-                <button onTouchStart={()=>setLooking(true)} onTouchEnd={()=>setLooking(false)} onMouseDown={()=>setLooking(true)} onMouseUp={()=>setLooking(false)} onMouseLeave={()=>setLooking(false)} style={{padding:'15px 30px',background:looking?'#9b59b6':'#3498db',border:'none',borderRadius:15,color:'#fff',fontWeight:'bold',cursor:'pointer',marginBottom:20}}>👁️ {looking?'GEHEIM!':'GEDRÜCKT HALTEN'}</button>
-                <h3>Was sagst du an?</h3>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,maxHeight:200,overflowY:'auto',marginTop:10}}>
-                  {valid.map(v=><button key={v} onClick={()=>announce(v)} style={{padding:10,background:v===21?'#ff6b6b':v%11===0?'#9b59b6':'rgba(255,255,255,0.1)',border:'none',borderRadius:8,color:'#fff',fontWeight:'bold',cursor:'pointer'}}>{v===21?'🔥MÄX':fmtDice(v)}</button>)}
+        <div style={{padding: 20, maxWidth: 450, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
+          <GameHeader title="🎲 MEIERN (Mäxle) 🍺" onBack={onBack} />
+          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={() => setPhase('rolling')} />}
+          {phase !== 'setup' && <>
+            <PlayerBar players={players} current={cur} />
+            {prev && phase !== 'result' && <div style={{textAlign: 'center', padding: 12, background: 'rgba(255,215,0,0.15)', borderRadius: 12, marginBottom: 15, border: '1px solid rgba(255,215,0,0.3)'}}>Letzte Ansage: <strong style={{color: '#ffd700'}}>{fmtDice(prev)}</strong></div>}
+            <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 25, textAlign: 'center'}}>
+              {phase === 'rolling' && <><h2 style={{color: '#ffd700', marginBottom: 10}}>{players[cur]?.name} ist dran!</h2><p style={{opacity: 0.7, marginBottom: 25}}>Würfle und bluffe!</p><Btn onClick={roll} danger style={{padding: '20px 50px', fontSize: '1.3rem'}}>🎲 WÜRFELN</Btn></>}
+              {phase === 'looking' && <>
+                <h2 style={{color: '#ffd700', marginBottom: 15}}>{players[cur]?.name} - Dein Wurf:</h2>
+                <div style={{display: 'flex', justifyContent: 'center', gap: 20, margin: '20px 0', filter: looking ? 'none' : 'blur(20px)', transition: 'filter 0.2s'}}><Dice value={dice[0]} rolling={rolling} /><Dice value={dice[1]} rolling={rolling} /></div>
+                {looking && <div style={{fontSize: '1.5rem', color: rolled === 21 ? '#ff6b6b' : '#ffd700', marginBottom: 15, fontWeight: 'bold'}}>{fmtDice(rolled)}</div>}
+                <button onTouchStart={() => setLooking(true)} onTouchEnd={() => setLooking(false)} onMouseDown={() => setLooking(true)} onMouseUp={() => setLooking(false)} onMouseLeave={() => setLooking(false)} style={{padding: '15px 30px', background: looking ? '#9b59b6' : '#3498db', border: 'none', borderRadius: 15, color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginBottom: 25, fontSize: '1rem'}}>👁️ {looking ? 'GEHEIM!' : 'GEDRÜCKT HALTEN'}</button>
+                <h3 style={{marginBottom: 15}}>Was sagst du an?</h3>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, maxHeight: 250, overflowY: 'auto', padding: '5px'}}>
+                  {validOptions.map(v => (<button key={v} onClick={() => announce(v)} style={{padding: 12, background: v === 21 ? '#ff6b6b' : v % 11 === 0 ? '#9b59b6' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem'}}>{v === 21 ? '🔥MÄX' : fmtDice(v)}</button>))}
                 </div>
               </>}
-              
-              {phase==='doubting' && <>
-                <h2 style={{color:'#ffd700'}}>{players[cur]?.name} sagt:</h2>
-                <div style={{fontSize:'2.5rem',color:announced===21?'#ff6b6b':'#ffd700',margin:'20px 0'}}>{fmtDice(announced)}</div>
-                <h3>{players[(cur+1)%players.length]?.name}, glaubst du das?</h3>
-                <div style={{display:'flex',gap:15,justifyContent:'center',marginTop:20}}>
-                  <Btn onClick={believe} primary>✓ Glaube!</Btn>
-                  <Btn onClick={doubt} danger>✗ Anzweifeln!</Btn>
-                </div>
-              </>}
-              
-              {phase==='result' && result && <>
-                <div style={{fontSize:'3rem'}}>{result.lied?'🤥':'😇'}</div>
-                <h2 style={{color:result.lied?'#ff6b6b':'#4CAF50'}}>{result.lied?'GELOGEN!':'WAHRHEIT!'}</h2>
-                <div style={{display:'flex',justifyContent:'center',gap:20,margin:'15px 0'}}><Dice value={dice[0]} size={50}/><Dice value={dice[1]} size={50}/></div>
-                <p>Angesagt: <strong style={{color:'#ffd700'}}>{fmtDice(result.announced)}</strong></p>
-                <p>Tatsächlich: <strong style={{color:'#4CAF50'}}>{fmtDice(result.actual)}</strong></p>
-                <div style={{background:'rgba(255,107,107,0.2)',borderRadius:15,padding:20,margin:'20px 0',border:'2px solid #ff6b6b'}}><strong>{result.loser}</strong> trinkt {result.drinks}x! 🍺</div>
-                <Btn onClick={nextRound}>Nächste Runde →</Btn>
-              </>}
+              {phase === 'doubting' && <><h2 style={{color: '#ffd700', marginBottom: 10}}>{players[cur]?.name} sagt:</h2><div style={{fontSize: '2.5rem', color: announced === 21 ? '#ff6b6b' : '#ffd700', margin: '20px 0', fontWeight: 'bold'}}>{fmtDice(announced)}</div><h3 style={{marginBottom: 20}}>{players[(cur+1) % players.length]?.name}, glaubst du das?</h3><div style={{display: 'flex', gap: 15, justifyContent: 'center'}}><Btn onClick={believe} primary style={{flex: 1, maxWidth: 150}}>✓ Glaube!</Btn><Btn onClick={doubt} danger style={{flex: 1, maxWidth: 150}}>✗ Anzweifeln!</Btn></div></>}
+              {phase === 'result' && result && <><div style={{fontSize: '4rem', marginBottom: 10}}>{result.lied ? '🤥' : '😇'}</div><h2 style={{color: result.lied ? '#ff6b6b' : '#4CAF50', marginBottom: 15}}>{result.lied ? 'GELOGEN!' : 'WAHRHEIT!'}</h2><div style={{display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 15}}><Dice value={dice[0]} size={50} /><Dice value={dice[1]} size={50} /></div><p style={{marginBottom: 5}}>Angesagt: <strong style={{color: '#ffd700'}}>{fmtDice(result.announced)}</strong></p><p style={{marginBottom: 20}}>Tatsächlich: <strong style={{color: '#4CAF50'}}>{fmtDice(result.actual)}</strong></p><div style={{background: 'rgba(255,107,107,0.2)', borderRadius: 15, padding: 20, marginBottom: 20, border: '2px solid #ff6b6b'}}><strong style={{fontSize: '1.2rem'}}>{result.loser}</strong> trinkt {result.drinks}x! 🍺</div><Btn onClick={nextRound} style={{fontSize: '1.1rem'}}>Nächste Runde →</Btn></>}
             </div>
           </>}
         </div>
       );
     };
 
-    // ========== KINGS CUP ==========
-    const KINGS_RULES = {
-      '2':{t:'Kategorie',d:'Wähle eine Kategorie. Reihum nennen - wer stockt, trinkt!'},
-      '3':{t:'Reim',d:'Sage ein Wort. Reihum muss gereimt werden!'},
-      '4':{t:'Boden',d:'Alle berühren den Boden - der Letzte trinkt!'},
-      '5':{t:'Männer',d:'Alle Männer trinken! 🍺'},
-      '6':{t:'Frauen',d:'Alle Frauen trinken! 🍺'},
-      '7':{t:'Himmel',d:'Alle zeigen nach oben - der Letzte trinkt!'},
-      '8':{t:'Trinkpartner',d:'Wähle einen Trinkpartner!'},
-      '9':{t:'Regel',d:'Erfinde eine Regel! Bei Verstoß wird getrunken.'},
-      '10':{t:'10 Schlucke',d:'Verteile 10 Schlucke!'},
-      'J':{t:'Questionmaster',d:'Wer deine Fragen beantwortet, trinkt.'},
-      'Q':{t:'Themenmaster',d:'Du bestimmst das Gesprächsthema!'},
-      'K':{t:'Kings Cup',d:'Fülle den Kings Cup! Beim 4. König wird er getrunken! 👑'},
-      'A':{t:'Wasserfall',d:'Alle trinken! Erst wenn du aufhörst, darf der nächste stoppen.'}
-    };
+    // KINGS CUP
+    const KINGS_RULES = {'2': {title: 'Kategorie', desc: 'Wähle eine Kategorie. Reihum nennen - wer stockt, trinkt!'}, '3': {title: 'Reim', desc: 'Sage ein Wort. Reihum muss gereimt werden!'}, '4': {title: 'Boden', desc: 'Alle berühren den Boden - der Letzte trinkt!'}, '5': {title: 'Männer', desc: 'Alle Männer trinken! 🍺'}, '6': {title: 'Frauen', desc: 'Alle Frauen trinken! 🍺'}, '7': {title: 'Himmel', desc: 'Alle zeigen nach oben - der Letzte trinkt!'}, '8': {title: 'Trinkpartner', desc: 'Wähle einen Trinkpartner - ihr trinkt immer zusammen!'}, '9': {title: 'Regel', desc: 'Erfinde eine Regel! Bei Verstoß wird getrunken.'}, '10': {title: '10 Schlucke', desc: 'Verteile 10 Schlucke an einen oder mehrere Spieler!'}, 'J': {title: 'Questionmaster', desc: 'Du bist Questionmaster. Wer deine Fragen beantwortet, trinkt.'}, 'Q': {title: 'Themenmaster', desc: 'Du bestimmst das Gesprächsthema bis zur nächsten Queen!'}, 'K': {title: 'Kings Cup', desc: 'Fülle etwas in den Kings Cup! Beim 4. König wird er getrunken! 👑'}, 'A': {title: 'Wasserfall', desc: 'Alle trinken! Erst wenn du aufhörst, darf der nächste stoppen.'}};
 
     const KingsCup = ({onBack}) => {
-      const [phase,setPhase] = useState('setup');
-      const [players,setPlayers] = useState([]);
-      const [deck,setDeck] = useState([]);
-      const [cur,setCur] = useState(0);
-      const [card,setCard] = useState(null);
-      const [kings,setKings] = useState(0);
-
-      const start = () => {setDeck(createDeck());setPhase('playing');};
-      const draw = () => {if(deck.length===0){setPhase('finished');return;}const c=deck[0];setDeck(deck.slice(1));setCard(c);if(c.value==='K')setKings(k=>k+1);setPhase('showing');};
-      const next = () => {setCur((cur+1)%players.length);setCard(null);setPhase('playing');};
+      const [phase, setPhase] = useState('setup');
+      const [players, setPlayers] = useState([]);
+      const [deck, setDeck] = useState([]);
+      const [cur, setCur] = useState(0);
+      const [card, setCard] = useState(null);
+      const [kings, setKings] = useState(0);
+      const start = () => { setDeck(createDeck()); setPhase('playing'); };
+      const draw = () => { if (deck.length === 0) { setPhase('finished'); return; } const c = deck[0]; setDeck(deck.slice(1)); setCard(c); if (c.value === 'K') setKings(k => k + 1); setPhase('showing'); };
+      const next = () => { setCur((cur + 1) % players.length); setCard(null); setPhase('playing'); };
 
       return (
-        <div style={{padding:20,maxWidth:450,margin:'0 auto',minHeight:'100vh'}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:'#ffd700',fontSize:'1.2rem',cursor:'pointer',marginBottom:10}}>← Zurück</button>
-          <h1 style={{textAlign:'center',color:'#ffd700'}}>👑 KINGS CUP 🍺</h1>
-          
-          {phase==='setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start}/>}
-          
-          {phase!=='setup' && <>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:15,padding:10,background:'rgba(0,0,0,0.3)',borderRadius:10}}>
-              <span>👑 Kings: {kings}/4</span><span>🃏 Karten: {deck.length}</span>
-            </div>
-            <div style={{background:'rgba(0,0,0,0.4)',borderRadius:20,padding:25,textAlign:'center'}}>
-              {phase==='playing' && <>
-                <h2 style={{color:'#ffd700'}}>{players[cur]?.name} ist dran!</h2>
-                <div style={{display:'flex',justifyContent:'center',margin:'30px 0'}}><Card card={{value:'?',suit:'?'}} faceUp={false} onClick={draw} highlight/></div>
-                <p style={{opacity:0.7}}>Tippe auf die Karte</p>
-              </>}
-              {phase==='showing' && card && <>
-                <div style={{display:'flex',justifyContent:'center',marginBottom:20}}><Card card={card} highlight/></div>
-                <h2 style={{color:'#ffd700',marginBottom:10}}>{KINGS_RULES[card.value]?.t}</h2>
-                <p style={{fontSize:'1.1rem',lineHeight:1.6,marginBottom:25}}>{KINGS_RULES[card.value]?.d}</p>
-                {card.value==='K' && kings===4 && <div style={{background:'rgba(255,215,0,0.2)',padding:15,borderRadius:10,marginBottom:20,border:'2px solid #ffd700'}}><strong>👑 4. KÖNIG! Kings Cup trinken! 👑</strong></div>}
-                <Btn onClick={next}>Nächster Spieler →</Btn>
-              </>}
-              {phase==='finished' && <><div style={{fontSize:'4rem'}}>🎉</div><h2 style={{color:'#ffd700'}}>Alle Karten gezogen!</h2><Btn onClick={()=>{setDeck(createDeck());setKings(0);setPhase('playing');}} style={{marginTop:20}}>🔄 Nochmal</Btn></>}
+        <div style={{padding: 20, maxWidth: 450, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
+          <GameHeader title="👑 KINGS CUP 🍺" onBack={onBack} />
+          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />}
+          {phase !== 'setup' && <>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 15, padding: 12, background: 'rgba(0,0,0,0.3)', borderRadius: 12}}><span>👑 Kings: {kings}/4</span><span>🃏 Karten: {deck.length}</span></div>
+            <PlayerBar players={players} current={cur} />
+            <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 25, textAlign: 'center'}}>
+              {phase === 'playing' && <><h2 style={{color: '#ffd700', marginBottom: 25}}>{players[cur]?.name} ist dran!</h2><div style={{display: 'flex', justifyContent: 'center', marginBottom: 25}}><Card card={{value: '?', suit: '?'}} faceUp={false} onClick={draw} highlight /></div><p style={{opacity: 0.7}}>Tippe auf die Karte zum Ziehen</p></>}
+              {phase === 'showing' && card && <><div style={{display: 'flex', justifyContent: 'center', marginBottom: 20}}><Card card={card} highlight /></div><h2 style={{color: '#ffd700', marginBottom: 10, fontSize: '1.5rem'}}>{KINGS_RULES[card.value]?.title}</h2><p style={{fontSize: '1.1rem', lineHeight: 1.6, marginBottom: 25, padding: '0 10px'}}>{KINGS_RULES[card.value]?.desc}</p>{card.value === 'K' && kings === 4 && <div style={{background: 'rgba(255,215,0,0.2)', padding: 15, borderRadius: 12, marginBottom: 20, border: '2px solid #ffd700'}}><strong>👑 4. KÖNIG! Kings Cup austrinken! 👑</strong></div>}<Btn onClick={next} style={{fontSize: '1.1rem'}}>Nächster Spieler →</Btn></>}
+              {phase === 'finished' && <><div style={{fontSize: '4rem', marginBottom: 15}}>🎉</div><h2 style={{color: '#ffd700', marginBottom: 20}}>Alle Karten gezogen!</h2><Btn onClick={() => {setDeck(createDeck()); setKings(0); setPhase('playing');}} style={{fontSize: '1.1rem'}}>🔄 Nochmal spielen</Btn></>}
             </div>
           </>}
         </div>
       );
     };
 
-    // ========== BUSFAHRER ==========
+    // BUSFAHRER
     const Busfahrer = ({onBack}) => {
-      const [phase,setPhase] = useState('setup');
-      const [players,setPlayers] = useState([]);
-      const [deck,setDeck] = useState([]);
-      const [cur,setCur] = useState(0);
-      const [card,setCard] = useState(null);
-      const [round,setRound] = useState(1);
-      const [streak,setStreak] = useState(0);
-      const [msg,setMsg] = useState('');
+      const [phase, setPhase] = useState('setup');
+      const [players, setPlayers] = useState([]);
+      const [deck, setDeck] = useState([]);
+      const [cur, setCur] = useState(0);
+      const [card, setCard] = useState(null);
+      const [round, setRound] = useState(1);
+      const [streak, setStreak] = useState(0);
+      const [msg, setMsg] = useState('');
 
-      const start = () => {const d=createDeck();setDeck(d.slice(1));setCard(d[0]);setPhase('playing');};
+      const start = () => { const d = createDeck(); setDeck(d.slice(1)); setCard(d[0]); setPhase('playing'); };
       const getNum = v => ({2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,J:11,Q:12,K:13,A:14}[v]);
-      
       const guess = choice => {
-        const prev = card;
-        const next = deck[0];
-        setDeck(deck.slice(1));
-        let ok = false;
-        if(round===1){const red=next.suit==='♥'||next.suit==='♦';ok=(choice==='red'&&red)||(choice==='black'&&!red);}
-        else{const p=getNum(prev.value),n=getNum(next.value);ok=(choice==='higher'&&n>p)||(choice==='lower'&&n<p)||(n===p);}
-        setCard(next);
-        if(ok){
-          setStreak(s=>s+1);setMsg(`✓ Richtig! Streak: ${streak+1}`);
-          if(streak+1>=4){setMsg(`🎉 ${players[cur].name} hat es geschafft!`);setTimeout(()=>{setCur((cur+1)%players.length);setStreak(0);setRound(1);setMsg('');},2000);}
-          else{setRound(r=>r+1);setTimeout(()=>setMsg(''),1000);}
-        }else{
-          const drinks=streak+1;
-          setPlayers(players.map((p,i)=>i===cur?{...p,drinks:p.drinks+drinks}:p));
-          setMsg(`✗ Falsch! ${players[cur].name} trinkt ${drinks}x 🍺`);
-          setTimeout(()=>{setCur((cur+1)%players.length);setStreak(0);setRound(1);setMsg('');},2000);
+        let currentDeck = deck;
+        if (currentDeck.length === 0) { currentDeck = createDeck(); setDeck(currentDeck); }
+        const prevCard = card;
+        const nextCard = currentDeck[0];
+        setDeck(currentDeck.slice(1));
+        let correct = false;
+        if (round === 1) { const red = nextCard.suit === '♥' || nextCard.suit === '♦'; correct = (choice === 'red' && red) || (choice === 'black' && !red); }
+        else { const p = getNum(prevCard.value), n = getNum(nextCard.value); correct = (choice === 'higher' && n > p) || (choice === 'lower' && n < p) || (n === p); }
+        setCard(nextCard);
+        if (correct) {
+          const newStreak = streak + 1; setStreak(newStreak);
+          if (newStreak >= 4) { setMsg(`🎉 ${players[cur].name} hat es geschafft!`); setTimeout(() => { setCur((cur + 1) % players.length); setStreak(0); setRound(1); setMsg(''); }, 2000); }
+          else { setMsg(`✓ Richtig! Streak: ${newStreak}`); setRound(r => r + 1); setTimeout(() => setMsg(''), 1000); }
+        } else {
+          const drinks = streak + 1; setPlayers(players.map((p, i) => i === cur ? {...p, drinks: p.drinks + drinks} : p)); setMsg(`✗ Falsch! ${players[cur].name} trinkt ${drinks}x 🍺`);
+          setTimeout(() => { setCur((cur + 1) % players.length); setStreak(0); setRound(1); setMsg(''); }, 2000);
         }
       };
-
-      const info = {1:{q:'Rot oder Schwarz?',btns:[{l:'🔴 Rot',v:'red'},{l:'⚫ Schwarz',v:'black'}]},2:{q:'Höher oder Niedriger?',btns:[{l:'⬆️ Höher',v:'higher'},{l:'⬇️ Niedriger',v:'lower'}]},3:{q:'Höher oder Niedriger?',btns:[{l:'⬆️ Höher',v:'higher'},{l:'⬇️ Niedriger',v:'lower'}]},4:{q:'Höher oder Niedriger?',btns:[{l:'⬆️ Höher',v:'higher'},{l:'⬇️ Niedriger',v:'lower'}]}};
+      const roundInfo = {1: {q: 'Rot oder Schwarz?', btns: [{l: '🔴 Rot', v: 'red'}, {l: '⚫ Schwarz', v: 'black'}]}, 2: {q: 'Höher oder Niedriger?', btns: [{l: '⬆️ Höher', v: 'higher'}, {l: '⬇️ Niedriger', v: 'lower'}]}, 3: {q: 'Höher oder Niedriger?', btns: [{l: '⬆️ Höher', v: 'higher'}, {l: '⬇️ Niedriger', v: 'lower'}]}, 4: {q: 'Höher oder Niedriger?', btns: [{l: '⬆️ Höher', v: 'higher'}, {l: '⬇️ Niedriger', v: 'lower'}]}};
 
       return (
-        <div style={{padding:20,maxWidth:450,margin:'0 auto',minHeight:'100vh'}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:'#ffd700',fontSize:'1.2rem',cursor:'pointer',marginBottom:10}}>← Zurück</button>
-          <h1 style={{textAlign:'center',color:'#ffd700'}}>🚌 BUSFAHRER 🍺</h1>
-          
-          {phase==='setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start}/>}
-          
-          {phase==='playing' && <>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center',marginBottom:15}}>
-              {players.map((p,i)=><div key={i} style={{padding:'6px 12px',background:i===cur?'linear-gradient(135deg,#ffd700,#ff8c00)':'rgba(255,255,255,0.1)',borderRadius:15,color:i===cur?'#1a1a1a':'#fff'}}>{p.name}: 🍺{p.drinks}</div>)}
-            </div>
-            <div style={{background:'rgba(0,0,0,0.4)',borderRadius:20,padding:25,textAlign:'center'}}>
-              <h2 style={{color:'#ffd700'}}>{players[cur]?.name}</h2>
-              <p>Runde {round}/4 • Streak: {streak}</p>
-              <div style={{display:'flex',justifyContent:'center',margin:'25px 0'}}>{card && <Card card={card} highlight/>}</div>
-              {msg ? <div style={{padding:20,background:msg.includes('✓')||msg.includes('🎉')?'rgba(76,175,80,0.2)':'rgba(231,76,60,0.2)',borderRadius:15,marginBottom:20}}><strong>{msg}</strong></div> : <>
-                <h3 style={{marginBottom:20}}>{info[round]?.q}</h3>
-                <div style={{display:'flex',gap:15,justifyContent:'center'}}>{info[round]?.btns.map((b,i)=><Btn key={i} onClick={()=>guess(b.v)} primary={i===0} danger={i===1} style={{flex:1}}>{b.l}</Btn>)}</div>
+        <div style={{padding: 20, maxWidth: 450, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
+          <GameHeader title="🚌 BUSFAHRER 🍺" onBack={onBack} />
+          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />}
+          {phase === 'playing' && <>
+            <PlayerBar players={players} current={cur} />
+            <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 25, textAlign: 'center'}}>
+              <h2 style={{color: '#ffd700', marginBottom: 5}}>{players[cur]?.name}</h2>
+              <p style={{opacity: 0.8, marginBottom: 20}}>Runde {round}/4 • Streak: {streak}</p>
+              <div style={{display: 'flex', justifyContent: 'center', marginBottom: 25}}>{card && <Card card={card} highlight />}</div>
+              {msg ? <div style={{padding: 20, background: msg.includes('✓') || msg.includes('🎉') ? 'rgba(76,175,80,0.2)' : 'rgba(231,76,60,0.2)', borderRadius: 15, marginBottom: 20, border: msg.includes('✓') || msg.includes('🎉') ? '2px solid #4CAF50' : '2px solid #e74c3c'}}><strong style={{fontSize: '1.1rem'}}>{msg}</strong></div> : <>
+                <h3 style={{marginBottom: 20, fontSize: '1.2rem'}}>{roundInfo[round]?.q}</h3>
+                <div style={{display: 'flex', gap: 15, justifyContent: 'center'}}>{roundInfo[round]?.btns.map((b, i) => <Btn key={i} onClick={() => guess(b.v)} primary={i === 0} danger={i === 1} style={{flex: 1, maxWidth: 160}}>{b.l}</Btn>)}</div>
               </>}
-              <p style={{marginTop:20,opacity:0.6,fontSize:'0.9rem'}}>4x richtig = geschafft!</p>
+              <p style={{marginTop: 25, opacity: 0.6, fontSize: '0.9rem'}}>4x hintereinander richtig = geschafft! 🎉</p>
             </div>
           </>}
         </div>
       );
     };
 
-    // ========== PYRAMIDE ==========
+    // PYRAMIDE
     const Pyramide = ({onBack}) => {
-      const [phase,setPhase] = useState('setup');
-      const [players,setPlayers] = useState([]);
-      const [pyramid,setPyramid] = useState([]);
-      const [hands,setHands] = useState({});
-      const [row,setRow] = useState(0);
-      const [revealed,setRevealed] = useState(null);
-      const [matching,setMatching] = useState([]);
-      const [selected,setSelected] = useState(null);
-      const [drinks,setDrinks] = useState(0);
-      const [msg,setMsg] = useState('');
-      const [waitingForAction,setWaitingForAction] = useState(false);
+      const [phase, setPhase] = useState('setup');
+      const [players, setPlayers] = useState([]);
+      const [pyramid, setPyramid] = useState([]);
+      const [hands, setHands] = useState({});
+      const [row, setRow] = useState(0);
+      const [revealed, setRevealed] = useState(null);
+      const [matching, setMatching] = useState([]);
+      const [selected, setSelected] = useState(null);
+      const [drinks, setDrinks] = useState(0);
+      const [msg, setMsg] = useState('');
       const ROWS = 5;
 
       const start = () => {
         let d = createDeck();
         const pyr = [];
-        for(let r=0;r<ROWS;r++){const rc=[];for(let i=0;i<ROWS-r;i++)rc.push({...d.pop(),revealed:false});pyr.push(rc);}
+        for (let r = 0; r < ROWS; r++) { const rowCards = []; for (let i = 0; i < ROWS - r; i++) rowCards.push({...d.pop(), revealed: false}); pyr.push(rowCards); }
         setPyramid(pyr);
-        const h = {};
-        players.forEach(p=>{h[p.name]=[d.pop(),d.pop(),d.pop(),d.pop()];});
-        setHands(h);
-        setPhase('playing');
-        setMsg('Tippe auf eine Karte!');
+        const h = {}; players.forEach(p => { h[p.name] = [d.pop(), d.pop(), d.pop(), d.pop()]; }); setHands(h);
+        setPhase('playing'); setMsg('Tippe auf eine Karte der untersten Reihe!');
       };
 
-      const reveal = (ri,ci) => {
-        if(ri!==row||pyramid[ri][ci].revealed||waitingForAction)return;
-        const newPyr = pyramid.map(r=>r.map(c=>({...c})));
-        newPyr[ri][ci].revealed = true;
-        setPyramid(newPyr);
-        const card = newPyr[ri][ci];
-        setRevealed(card);
-        const dr = ri+1;
-        setDrinks(dr);
-        const m = [];
-        Object.entries(hands).forEach(([name,hand])=>{if(hand.some(c=>c.value===card.value))m.push(name);});
-        setMatching(m);
-        if(m.length>0){
-          setMsg(`${dr} Schluck${dr>1?'e':''} verteilen!`);
-          setPhase('distribute');
-          setWaitingForAction(true);
-        }else{
-          setMsg('Niemand hat die Karte!');
-          setTimeout(()=>advance(newPyr),1500);
-        }
+      const revealCard = (ri, ci) => {
+        if (ri !== row || pyramid[ri][ci].revealed) return;
+        const newPyramid = pyramid.map(r => r.map(c => ({...c}))); newPyramid[ri][ci].revealed = true; setPyramid(newPyramid);
+        const card = newPyramid[ri][ci]; setRevealed(card);
+        const drinkAmount = ri + 1; setDrinks(drinkAmount);
+        const matchingPlayers = []; Object.entries(hands).forEach(([name, hand]) => { if (hand.some(c => c.value === card.value)) matchingPlayers.push(name); }); setMatching(matchingPlayers);
+        if (matchingPlayers.length > 0) { setMsg(`${drinkAmount} Schluck${drinkAmount > 1 ? 'e' : ''} verteilen!`); setPhase('distribute'); }
+        else { setMsg('Niemand hat diese Karte!'); setPhase('noMatch'); }
       };
 
-      const playCard = (pn,ci) => {
-        const card = hands[pn][ci];
-        if(card.value!==revealed?.value)return;
-        const newH = {...hands};
-        newH[pn] = newH[pn].filter((_,i)=>i!==ci);
-        setHands(newH);
-        setSelected(pn);
+      const playCard = (playerName, cardIdx) => {
+        const card = hands[playerName][cardIdx]; if (card.value !== revealed?.value) return;
+        const newHands = {...hands}; newHands[playerName] = newHands[playerName].filter((_, i) => i !== cardIdx); setHands(newHands); setSelected(playerName);
       };
 
       const giveDrinks = (target) => {
-        setPlayers(ps=>ps.map(p=>p.name===target?{...p,drinks:p.drinks+drinks}:p));
-        setMsg(`${target} trinkt ${drinks}! 🍺`);
-        // Check mit aktuellen hands
-        const currentHands = {...hands};
-        if(selected){
-          // Die Karte wurde schon aus der Hand entfernt in playCard
-        }
-        const still = matching.filter(name=>currentHands[name]?.some(c=>c.value===revealed?.value));
-        if(still.length>0){
-          setMatching(still);
-          setSelected(null);
-        }else{
-          setTimeout(()=>advance(pyramid),1500);
-        }
+        setPlayers(ps => ps.map(p => p.name === target ? {...p, drinks: p.drinks + drinks} : p)); setMsg(`${target} trinkt ${drinks}! 🍺`);
+        const stillMatching = matching.filter(name => hands[name]?.some(c => c.value === revealed?.value));
+        if (stillMatching.length > 0) { setMatching(stillMatching); setSelected(null); } else { setPhase('noMatch'); }
       };
 
-      const skipDistribute = () => {
-        advance(pyramid);
-      };
-
-      const advance = (pyr) => {
-        setSelected(null);
-        setRevealed(null);
-        setMatching([]);
-        setWaitingForAction(false);
-        const allRev = pyr[row]?.every(c=>c.revealed);
-        if(allRev){
-          if(row+1>=ROWS){setPhase('finished');setMsg('🎉 Geschafft!');return;}
-          setRow(r=>r+1);
-        }
-        setPhase('playing');
-        setMsg('Nächste Karte!');
+      const advance = () => {
+        setSelected(null); setRevealed(null); setMatching([]);
+        const allRevealed = pyramid[row]?.every(c => c.revealed);
+        if (allRevealed) { if (row + 1 >= ROWS) { setPhase('finished'); setMsg('🎉 Pyramide geschafft!'); return; } setRow(r => r + 1); }
+        setPhase('playing'); setMsg('Nächste Karte!');
       };
 
       return (
-        <div style={{padding:15,maxWidth:500,margin:'0 auto',minHeight:'100vh'}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:'#ffd700',fontSize:'1.2rem',cursor:'pointer',marginBottom:10}}>← Zurück</button>
-          <h1 style={{textAlign:'center',color:'#ffd700',fontSize:'1.8rem'}}>🃏 PYRAMIDE 🍺</h1>
-          
-          {phase==='setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start}/>}
-          
-          {(phase==='playing'||phase==='distribute'||phase==='finished') && <>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center',marginBottom:10}}>
-              {players.map((p,i)=><div key={i} style={{padding:'5px 10px',background:'rgba(255,255,255,0.1)',borderRadius:10,fontSize:'0.9rem'}}>{p.name}: 🍺{p.drinks}</div>)}
-            </div>
-            <div style={{textAlign:'center',padding:8,background:'rgba(255,215,0,0.15)',borderRadius:10,marginBottom:10,color:'#ffd700'}}>{msg}</div>
-            <div style={{background:'rgba(0,0,0,0.3)',borderRadius:15,padding:15,marginBottom:10}}>
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-                {[...pyramid].reverse().map((r,di)=>{
-                  const ri=ROWS-1-di;
-                  return <div key={di} style={{display:'flex',alignItems:'center',gap:5}}>
-                    <span style={{fontSize:'0.75rem',color:'#ffd700',width:22}}>{ri+1}🍺</span>
-                    <div style={{display:'flex',gap:5}}>
-                      {r.map((c,ci)=><Card key={ci} card={c} faceUp={c.revealed} small highlight={ri===row&&!c.revealed&&phase==='playing'} onClick={()=>phase==='playing'&&!c.revealed&&ri===row&&reveal(ri,ci)}/>)}
-                    </div>
-                  </div>;
+        <div style={{padding: 15, maxWidth: 500, margin: '0 auto', minHeight: '100vh', paddingBottom: 40}}>
+          <GameHeader title="🃏 PYRAMIDE 🍺" onBack={onBack} />
+          {phase === 'setup' && <PlayerSetup players={players} setPlayers={setPlayers} onStart={start} />}
+          {phase !== 'setup' && <>
+            <PlayerBar players={players} />
+            <div style={{textAlign: 'center', padding: 12, background: 'rgba(255,215,0,0.15)', borderRadius: 12, marginBottom: 15, border: '1px solid rgba(255,215,0,0.3)'}}>{msg}</div>
+            <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: 15, padding: 15, marginBottom: 15}}>
+              <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8}}>
+                {[...pyramid].reverse().map((rowCards, displayIdx) => {
+                  const rowIdx = ROWS - 1 - displayIdx;
+                  return (<div key={displayIdx} style={{display: 'flex', alignItems: 'center', gap: 6}}><span style={{fontSize: '0.8rem', color: '#ffd700', width: 30, textAlign: 'right'}}>{rowIdx + 1}🍺</span><div style={{display: 'flex', gap: 6}}>{rowCards.map((c, ci) => <Card key={ci} card={c} faceUp={c.revealed} small highlight={rowIdx === row && !c.revealed && phase === 'playing'} onClick={() => phase === 'playing' && !c.revealed && rowIdx === row && revealCard(rowIdx, ci)} />)}</div></div>);
                 })}
               </div>
             </div>
-            {phase==='distribute' && <>
-              <div style={{background:'rgba(0,0,0,0.4)',borderRadius:15,padding:15,marginBottom:10}}>
-                <h3 style={{color:'#ffd700',textAlign:'center',marginBottom:10}}>Wer legt ab?</h3>
-                {matching.map(name=><div key={name} style={{marginBottom:10}}>
-                  <p style={{margin:'0 0 5px',fontWeight:'bold'}}>{name}:</p>
-                  <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-                    {hands[name]?.map((c,i)=><Card key={i} card={c} small highlight={c.value===revealed?.value} onClick={()=>c.value===revealed?.value&&playCard(name,i)}/>)}
-                  </div>
-                </div>)}
-                {selected && <div style={{marginTop:15}}>
-                  <p style={{color:'#ffd700',textAlign:'center'}}>{selected} verteilt {drinks} Schlucke an:</p>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center',marginTop:10}}>
-                    {players.map((p,i)=><Btn key={i} onClick={()=>giveDrinks(p.name)} danger>{p.name}</Btn>)}
-                  </div>
-                </div>}
-                <button onClick={skipDistribute} style={{width:'100%',marginTop:15,padding:10,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:10,color:'#fff',cursor:'pointer'}}>Niemand legt ab → Weiter</button>
-              </div>
-            </>}
-            {phase==='finished' && <div style={{textAlign:'center',padding:30,background:'rgba(255,215,0,0.1)',borderRadius:20}}>
-              <div style={{fontSize:'4rem'}}>🏆</div>
-              <h2 style={{color:'#ffd700'}}>Pyramide geschafft!</h2>
-              {[...players].sort((a,b)=>b.drinks-a.drinks).map((p,i)=><div key={i} style={{padding:8,background:i===0?'rgba(255,0,0,0.2)':'rgba(255,255,255,0.05)',borderRadius:8,marginBottom:5}}>{i===0?'🥴 ':''}{p.name}: {p.drinks} Schlucke</div>)}
+            {phase === 'distribute' && <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 15, padding: 15}}>
+              <h3 style={{color: '#ffd700', textAlign: 'center', marginBottom: 15}}>Wer legt die {revealed?.value} ab?</h3>
+              {matching.map(name => (<div key={name} style={{marginBottom: 15}}><p style={{margin: '0 0 8px', fontWeight: 'bold'}}>{name}:</p><div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>{hands[name]?.map((c, i) => <Card key={i} card={c} small highlight={c.value === revealed?.value} onClick={() => c.value === revealed?.value && playCard(name, i)} />)}</div></div>))}
+              {selected && <div style={{marginTop: 20}}><p style={{color: '#ffd700', textAlign: 'center', marginBottom: 15}}>{selected} verteilt {drinks} Schlucke an:</p><div style={{display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center'}}>{players.map((p, i) => <Btn key={i} onClick={() => giveDrinks(p.name)} danger>{p.name}</Btn>)}</div></div>}
+              <button onClick={advance} style={{width: '100%', marginTop: 20, padding: 15, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 12, color: '#fff', cursor: 'pointer', fontSize: '1rem'}}>Niemand legt ab → Weiter</button>
             </div>}
+            {phase === 'noMatch' && <div style={{textAlign: 'center', marginTop: 20}}><Btn onClick={advance}>Weiter →</Btn></div>}
+            {phase === 'finished' && <div style={{textAlign: 'center', padding: 30, background: 'rgba(255,215,0,0.1)', borderRadius: 20}}><div style={{fontSize: '4rem', marginBottom: 15}}>🏆</div><h2 style={{color: '#ffd700', marginBottom: 20}}>Pyramide geschafft!</h2><h3 style={{marginBottom: 15}}>Endergebnis:</h3>{[...players].sort((a, b) => b.drinks - a.drinks).map((p, i) => <div key={i} style={{padding: 12, background: i === 0 ? 'rgba(255,0,0,0.2)' : 'rgba(255,255,255,0.05)', borderRadius: 10, marginBottom: 8}}>{i === 0 ? '🥴 ' : ''}{p.name}: {p.drinks} Schlucke</div>)}</div>}
           </>}
         </div>
       );
     };
 
-    // ========== REAKTIONS-DUELL ==========
+    // REAKTION
     const Reaktion = ({onBack}) => {
-      const [phase,setPhase] = useState('setup');
-      const [players,setPlayers] = useState([]);
-      const [taps,setTaps] = useState({});
-      const [start,setStart] = useState(null);
-      const [timer,setTimer] = useState(null);
-      const [losers,setLosers] = useState([]);
-      const [falseStart,setFalseStart] = useState(null);
-      const [mode,setMode] = useState('last');
+      const [phase, setPhase] = useState('setup');
+      const [players, setPlayers] = useState([]);
+      const [taps, setTaps] = useState({});
+      const [startTime, setStartTime] = useState(null);
+      const [timerId, setTimerId] = useState(null);
+      const [losers, setLosers] = useState([]);
+      const [falseStart, setFalseStart] = useState(null);
+      const [mode, setMode] = useState('last');
 
-      const startRound = () => {
-        setTaps({});setLosers([]);setFalseStart(null);setPhase('waiting');
-        const t = setTimeout(()=>{setStart(Date.now());setPhase('ready');},2000+Math.random()*3000);
-        setTimer(t);
-      };
+      const startRound = () => { setTaps({}); setLosers([]); setFalseStart(null); setPhase('waiting'); const delay = 2000 + Math.random() * 3000; const id = setTimeout(() => { setStartTime(Date.now()); setPhase('ready'); }, delay); setTimerId(id); };
 
-      const tap = name => {
-        if(phase==='waiting'){clearTimeout(timer);setFalseStart(name);setPlayers(p=>p.map(x=>x.name===name?{...x,drinks:x.drinks+2}:x));setPhase('result');return;}
-        if(phase!=='ready'||taps[name])return;
-        const t = Date.now()-start;
-        const newTaps = {...taps,[name]:t};
-        setTaps(newTaps);
-        if(Object.keys(newTaps).length===players.length){
-          const sorted = Object.entries(newTaps).sort((a,b)=>a[1]-b[1]);
-          const L = mode==='last'?[sorted[sorted.length-1][0]]:sorted.slice(1).map(([n])=>n);
-          setLosers(L);
-          setPlayers(p=>p.map(x=>L.includes(x.name)?{...x,drinks:x.drinks+1}:x));
-          setPhase('result');
+      const handleTap = useCallback((name) => {
+        if (phase === 'waiting') { clearTimeout(timerId); setFalseStart(name); setPlayers(p => p.map(x => x.name === name ? {...x, drinks: x.drinks + 2} : x)); setPhase('result'); return; }
+        if (phase !== 'ready') return; if (taps[name]) return;
+        const time = Date.now() - startTime; const newTaps = {...taps, [name]: time}; setTaps(newTaps);
+        if (Object.keys(newTaps).length === players.length) {
+          const sorted = Object.entries(newTaps).sort((a, b) => a[1] - b[1]);
+          const loserList = mode === 'last' ? [sorted[sorted.length - 1][0]] : sorted.slice(1).map(([n]) => n);
+          setLosers(loserList); setPlayers(p => p.map(x => loserList.includes(x.name) ? {...x, drinks: x.drinks + 1} : x)); setPhase('result');
         }
-      };
+      }, [phase, timerId, taps, startTime, players, mode]);
 
-      const grid = players.length===2?{gridTemplateRows:'1fr 1fr',gridTemplateColumns:'1fr'}:{gridTemplateRows:'1fr 1fr',gridTemplateColumns:'1fr 1fr'};
-      const area = i => {
-        const n=players.length;
-        if(n===2)return i===0?{gridRow:'1',gridColumn:'1'}:{gridRow:'2',gridColumn:'1'};
-        if(n===3){if(i===0)return{gridRow:'1',gridColumn:'1/3'};return i===1?{gridRow:'2',gridColumn:'1'}:{gridRow:'2',gridColumn:'2'};}
-        return{gridRow:i<2?'1':'2',gridColumn:i%2===0?'1':'2'};
-      };
-      const bg = name => {
-        if(phase==='waiting')return'#e74c3c';
-        if(phase==='ready')return taps[name]?'#7f8c8d':'#27ae60';
-        if(phase==='result'){if(falseStart===name)return'#9b59b6';if(losers.includes(name))return'#e74c3c';return'#27ae60';}
-        return'#3498db';
-      };
-      const rot = i => {
-        const n=players.length;
-        if(n===2&&i===0)return'rotate(180deg)';
-        if(n>=3&&i===0)return'rotate(180deg)';
-        if(n===4&&i===1)return'rotate(180deg)';
-        return'none';
-      };
+      const getGridStyle = () => players.length === 2 ? {gridTemplateRows: '1fr 1fr', gridTemplateColumns: '1fr'} : {gridTemplateRows: '1fr 1fr', gridTemplateColumns: '1fr 1fr'};
+      const getArea = (index) => { const n = players.length; if (n === 2) return index === 0 ? {gridRow: '1', gridColumn: '1'} : {gridRow: '2', gridColumn: '1'}; if (n === 3) { if (index === 0) return {gridRow: '1', gridColumn: '1 / 3'}; return index === 1 ? {gridRow: '2', gridColumn: '1'} : {gridRow: '2', gridColumn: '2'}; } return {gridRow: index < 2 ? '1' : '2', gridColumn: index % 2 === 0 ? '1' : '2'}; };
+      const getBackground = (name) => { if (phase === 'waiting') return '#e74c3c'; if (phase === 'ready') return taps[name] ? '#7f8c8d' : '#27ae60'; if (phase === 'result') { if (falseStart === name) return '#9b59b6'; if (losers.includes(name)) return '#e74c3c'; return '#27ae60'; } return '#3498db'; };
+      const getRotation = (index) => { const n = players.length; if (n === 2 && index === 0) return 'rotate(180deg)'; if (n >= 3 && index === 0) return 'rotate(180deg)'; if (n === 4 && index === 1) return 'rotate(180deg)'; return 'none'; };
 
-      if(phase==='setup') return (
-        <div style={{padding:20,minHeight:'100vh'}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:'#ffd700',fontSize:'1.2rem',cursor:'pointer',marginBottom:10}}>← Zurück</button>
-          <h1 style={{textAlign:'center',color:'#ffd700'}}>⚡ REAKTIONS-DUELL 🍺</h1>
-          <div style={{background:'rgba(0,0,0,0.4)',borderRadius:15,padding:15,marginBottom:20,maxWidth:400,margin:'0 auto 20px'}}>
-            <h3 style={{color:'#ffd700',marginTop:0,textAlign:'center'}}>Spielmodus</h3>
-            <div style={{display:'flex',gap:10}}>
-              <button onClick={()=>setMode('last')} style={{flex:1,padding:15,background:mode==='last'?'linear-gradient(135deg,#ffd700,#ff8c00)':'rgba(255,255,255,0.1)',border:'none',borderRadius:10,color:mode==='last'?'#1a1a1a':'#fff',fontWeight:'bold',cursor:'pointer'}}>🐌 Letzter trinkt</button>
-              <button onClick={()=>setMode('allButFirst')} style={{flex:1,padding:15,background:mode==='allButFirst'?'linear-gradient(135deg,#ffd700,#ff8c00)':'rgba(255,255,255,0.1)',border:'none',borderRadius:10,color:mode==='allButFirst'?'#1a1a1a':'#fff',fontWeight:'bold',cursor:'pointer'}}>🏆 Nur Schnellster frei</button>
+      if (phase === 'setup') return (
+        <div style={{padding: 20, minHeight: '100vh', paddingBottom: 40}}>
+          <GameHeader title="⚡ REAKTIONS-DUELL 🍺" onBack={onBack} />
+          <div style={{background: 'rgba(0,0,0,0.4)', borderRadius: 15, padding: 15, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px'}}>
+            <h3 style={{color: '#ffd700', marginTop: 0, marginBottom: 15, textAlign: 'center'}}>Spielmodus</h3>
+            <div style={{display: 'flex', gap: 10}}>
+              <button onClick={() => setMode('last')} style={{flex: 1, padding: 15, background: mode === 'last' ? 'linear-gradient(135deg, #ffd700, #ff8c00)' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 12, color: mode === 'last' ? '#1a1a1a' : '#fff', fontWeight: 'bold', cursor: 'pointer'}}>🐌 Letzter trinkt</button>
+              <button onClick={() => setMode('allButFirst')} style={{flex: 1, padding: 15, background: mode === 'allButFirst' ? 'linear-gradient(135deg, #ffd700, #ff8c00)' : 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 12, color: mode === 'allButFirst' ? '#1a1a1a' : '#fff', fontWeight: 'bold', cursor: 'pointer'}}>🏆 Nur Schnellster frei</button>
             </div>
           </div>
-          <PlayerSetup players={players} setPlayers={setPlayers} onStart={startRound} min={2} max={4}/>
-          {players.length>4 && <p style={{textAlign:'center',color:'#ff6b6b',marginTop:10}}>Max 4 Spieler!</p>}
+          <PlayerSetup players={players} setPlayers={setPlayers} onStart={startRound} min={2} max={4} />
+          {players.length > 4 && <p style={{textAlign: 'center', color: '#ff6b6b', marginTop: 10}}>Maximal 4 Spieler!</p>}
         </div>
       );
 
       return (
-        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,display:'grid',...grid,gap:4,background:'#000'}}>
-          {players.slice(0,4).map((p,i)=>(
-            <div key={p.name} onTouchStart={e=>{e.preventDefault();tap(p.name);}} onMouseDown={()=>tap(p.name)} style={{...area(i),background:bg(p.name),display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',userSelect:'none',touchAction:'manipulation',WebkitUserSelect:'none',WebkitTouchCallout:'none'}}>
-              <div style={{transform:rot(i),textAlign:'center',pointerEvents:'none'}}>
-                <div style={{fontSize:'1.8rem',fontWeight:'bold',marginBottom:5,color:'#fff'}}>{p.name}</div>
-                <div style={{fontSize:'1rem',color:'rgba(255,255,255,0.8)',marginBottom:15}}>🍺 {p.drinks}</div>
-                {phase==='waiting' && <div style={{fontSize:'2.5rem'}}>🔴</div>}
-                {phase==='ready' && !taps[p.name] && <div style={{fontSize:'4rem',animation:'pulse 0.3s infinite'}}>👆</div>}
-                {phase==='ready' && taps[p.name] && <div style={{fontSize:'1.5rem',color:'#fff'}}>✓ {taps[p.name]}ms</div>}
-                {phase==='result' && falseStart===p.name && <div style={{fontSize:'1.3rem',color:'#fff'}}>⚡ ZU FRÜH!<br/>2x Trinken!</div>}
-                {phase==='result' && !falseStart && losers.includes(p.name) && <div style={{fontSize:'1.3rem',color:'#fff'}}>🐌 {taps[p.name]}ms<br/>TRINKEN!</div>}
-                {phase==='result' && !falseStart && !losers.includes(p.name) && taps[p.name] && <div style={{fontSize:'1.3rem',color:'#fff'}}>🏆 {taps[p.name]}ms</div>}
+        <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'grid', ...getGridStyle(), gap: 4, background: '#000', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)'}}>
+          {players.slice(0, 4).map((p, i) => (
+            <div key={p.name} onTouchStart={(e) => { e.preventDefault(); handleTap(p.name); }} onMouseDown={() => handleTap(p.name)} className="no-select" style={{...getArea(i), background: getBackground(p.name), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s', touchAction: 'manipulation'}}>
+              <div style={{transform: getRotation(i), textAlign: 'center', pointerEvents: 'none'}}>
+                <div style={{fontSize: '2rem', fontWeight: 'bold', marginBottom: 8, color: '#fff'}}>{p.name}</div>
+                <div style={{fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', marginBottom: 20}}>🍺 {p.drinks}</div>
+                {phase === 'waiting' && <div style={{fontSize: '3rem'}}>🔴</div>}
+                {phase === 'ready' && !taps[p.name] && <div style={{fontSize: '5rem', animation: 'pulse 0.3s infinite'}}>👆</div>}
+                {phase === 'ready' && taps[p.name] && <div style={{fontSize: '1.8rem', color: '#fff'}}>✓ {taps[p.name]}ms</div>}
+                {phase === 'result' && falseStart === p.name && <div style={{fontSize: '1.5rem', color: '#fff', lineHeight: 1.4}}>⚡ ZU FRÜH!<br/>2x Trinken!</div>}
+                {phase === 'result' && !falseStart && losers.includes(p.name) && <div style={{fontSize: '1.5rem', color: '#fff', lineHeight: 1.4}}>🐌 {taps[p.name]}ms<br/>TRINKEN!</div>}
+                {phase === 'result' && !falseStart && !losers.includes(p.name) && taps[p.name] && <div style={{fontSize: '1.8rem', color: '#fff'}}>🏆 {taps[p.name]}ms</div>}
               </div>
             </div>
           ))}
-          {phase==='result' && <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',zIndex:100,display:'flex',flexDirection:'column',gap:10}}>
-            <button onClick={startRound} style={{padding:'20px 40px',fontSize:'1.3rem',fontWeight:'bold',background:'linear-gradient(135deg,#ffd700,#ff8c00)',border:'none',borderRadius:30,color:'#1a1a1a',cursor:'pointer',boxShadow:'0 5px 30px rgba(0,0,0,0.5)'}}>🔄 Nächste Runde</button>
-            <button onClick={onBack} style={{padding:'12px 25px',background:'rgba(0,0,0,0.7)',border:'2px solid #fff',borderRadius:20,color:'#fff',cursor:'pointer',fontWeight:'bold'}}>← Zurück</button>
+          {phase === 'result' && <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 100, display: 'flex', flexDirection: 'column', gap: 12}}>
+            <button onClick={startRound} style={{padding: '20px 45px', fontSize: '1.4rem', fontWeight: 'bold', background: 'linear-gradient(135deg, #ffd700, #ff8c00)', border: 'none', borderRadius: 30, color: '#1a1a1a', cursor: 'pointer', boxShadow: '0 5px 30px rgba(0,0,0,0.5)'}}>🔄 Nächste Runde</button>
+            <button onClick={onBack} style={{padding: '14px 30px', background: 'rgba(0,0,0,0.8)', border: '2px solid #fff', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem'}}>← Zurück zum Menü</button>
           </div>}
         </div>
       );
     };
 
-    // ========== MAIN ==========
+    // MAIN
     const games = [
-      {id:'meiern',name:'Meiern (Mäxle)',icon:'🎲',desc:'Bluff-Würfelspiel',color:'#e74c3c'},
-      {id:'pyramid',name:'Pyramide',icon:'🃏',desc:'Karten-Pyramide',color:'#27ae60'},
-      {id:'kings',name:'Kings Cup',icon:'👑',desc:'Karten mit Regeln',color:'#9b59b6'},
-      {id:'bus',name:'Busfahrer',icon:'🚌',desc:'Karten raten',color:'#3498db'},
-      {id:'reaktion',name:'Reaktions-Duell',icon:'⚡',desc:'Wer ist am langsamsten?',color:'#f39c12'},
+      {id: 'meiern', name: 'Meiern (Mäxle)', icon: '🎲', desc: 'Bluff-Würfelspiel', color: '#e74c3c'},
+      {id: 'pyramid', name: 'Pyramide', icon: '🃏', desc: 'Karten-Pyramide', color: '#27ae60'},
+      {id: 'kings', name: 'Kings Cup', icon: '👑', desc: 'Karten mit Regeln', color: '#9b59b6'},
+      {id: 'bus', name: 'Busfahrer', icon: '🚌', desc: 'Karten raten', color: '#3498db'},
+      {id: 'reaktion', name: 'Reaktions-Duell', icon: '⚡', desc: 'Wer ist am langsamsten?', color: '#f39c12'},
     ];
 
     const App = () => {
-      const [game,setGame] = useState(null);
+      const [game, setGame] = useState(null);
       const back = () => setGame(null);
-
-      if(game==='meiern') return <Meiern onBack={back}/>;
-      if(game==='pyramid') return <Pyramide onBack={back}/>;
-      if(game==='kings') return <KingsCup onBack={back}/>;
-      if(game==='bus') return <Busfahrer onBack={back}/>;
-      if(game==='reaktion') return <Reaktion onBack={back}/>;
+      if (game === 'meiern') return <Meiern onBack={back} />;
+      if (game === 'pyramid') return <Pyramide onBack={back} />;
+      if (game === 'kings') return <KingsCup onBack={back} />;
+      if (game === 'bus') return <Busfahrer onBack={back} />;
+      if (game === 'reaktion') return <Reaktion onBack={back} />;
 
       return (
-        <div style={{padding:20,minHeight:'100vh'}}>
-          <div style={{textAlign:'center',marginBottom:30}}>
-            <h1 style={{fontSize:'2.5rem',background:'linear-gradient(90deg,#ffd700,#ff6b6b,#ffd700)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',margin:'0 0 10px'}}>🍺 TRINKSPIELE 🍺</h1>
-            <p style={{opacity:0.7}}>Wähle ein Spiel!</p>
+        <div style={{padding: 20, minHeight: '100vh', paddingBottom: 40}}>
+          <div style={{textAlign: 'center', marginBottom: 35}}>
+            <h1 style={{fontSize: '2.8rem', background: 'linear-gradient(90deg, #ffd700, #ff6b6b, #ffd700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '0 0 10px'}}>🍺 TRINKSPIELE 🍺</h1>
+            <p style={{opacity: 0.7, fontSize: '1.1rem'}}>Wähle ein Spiel!</p>
           </div>
-          <div style={{maxWidth:400,margin:'0 auto'}}>
-            {games.map(g=>(
-              <button key={g.id} onClick={()=>setGame(g.id)} style={{width:'100%',padding:20,marginBottom:15,background:`linear-gradient(135deg,${g.color},${g.color}dd)`,border:'none',borderRadius:15,color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:15,boxShadow:`0 5px 20px ${g.color}50`,touchAction:'manipulation'}}>
-                <span style={{fontSize:'2.5rem'}}>{g.icon}</span>
-                <div style={{textAlign:'left'}}>
-                  <div style={{fontSize:'1.3rem',fontWeight:'bold'}}>{g.name}</div>
-                  <div style={{opacity:0.8,fontSize:'0.9rem'}}>{g.desc}</div>
-                </div>
+          <div style={{maxWidth: 420, margin: '0 auto'}}>
+            {games.map(g => (
+              <button key={g.id} onClick={() => setGame(g.id)} style={{width: '100%', padding: 22, marginBottom: 16, background: `linear-gradient(135deg, ${g.color}, ${g.color}dd)`, border: 'none', borderRadius: 18, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 18, boxShadow: `0 6px 25px ${g.color}40`, transition: 'transform 0.1s'}}>
+                <span style={{fontSize: '3rem'}}>{g.icon}</span>
+                <div style={{textAlign: 'left'}}><div style={{fontSize: '1.4rem', fontWeight: 'bold'}}>{g.name}</div><div style={{opacity: 0.9, fontSize: '1rem'}}>{g.desc}</div></div>
               </button>
             ))}
           </div>
-          <p style={{textAlign:'center',marginTop:30,opacity:0.5,fontSize:'0.85rem'}}>Bitte trinke verantwortungsvoll! 🍻</p>
-          <p style={{textAlign:'center',marginTop:10,opacity:0.4,fontSize:'0.75rem'}}>Tipp: "Zum Startbildschirm hinzufügen" für App-Erlebnis</p>
+          <p style={{textAlign: 'center', marginTop: 35, opacity: 0.5, fontSize: '0.9rem'}}>Bitte trinke verantwortungsvoll! 🍻</p>
+          <p style={{textAlign: 'center', marginTop: 12, opacity: 0.4, fontSize: '0.8rem'}}>📱 Tipp: "Zum Startbildschirm hinzufügen" für App-Erlebnis</p>
         </div>
       );
     };
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
+
 </body>
 </html>
