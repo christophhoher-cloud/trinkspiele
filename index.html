@@ -35,6 +35,24 @@
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 2px; }
     button:active { transform: scale(0.95); }
     .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    button, input[type="button"], input[type="submit"], [role="button"], div[onClick], div[onTouchStart] {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    body, html {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
   </style>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -738,47 +756,46 @@
         setPhase('waiting');
         setRoundNum(r => r + 1);
         
-        const delay = 800 + Math.random() * 1500;
-        timeoutRef.current = setTimeout(() => {
-          // Zufällige Farbe aus ALLEN verfügbaren (inkl. Extra-Farben)
-          const colorIdx = Math.floor(Math.random() * colors.length);
-          setTargetColorIdx(colorIdx);
-          setStartTime(Date.now());
-          setPhase('react');
-          
-          // Timeout nach 750ms
+        const showColor = () => {
+          const delay = 800 + Math.random() * 1500;
           timeoutRef.current = setTimeout(() => {
-            handleTimeout(colorIdx, colors);
-          }, 750);
-          
-          // Extra-Farben verschwinden nach 1 Sekunde
-          if (colorIdx >= players.length) {
-            disappearRef.current = setTimeout(() => {
-              if (phase === 'react') {
-                setRoundResult({type: 'nobody', msg: 'Niemand durfte tippen - gut aufgepasst!'});
-                setPhase('result');
-              }
-            }, 1000);
-          }
-        }, delay);
+            // Zufällige Farbe aus ALLEN verfügbaren (inkl. Extra-Farben)
+            const colorIdx = Math.floor(Math.random() * colors.length);
+            setTargetColorIdx(colorIdx);
+            setStartTime(Date.now());
+            setPhase('react');
+            
+            // Extra-Farbe? Nur kurz zeigen und dann neue Farbe!
+            if (colorIdx >= players.length) {
+              // Extra-Farbe: 600-900ms zeigen, dann neue Farbe
+              timeoutRef.current = setTimeout(() => {
+                setTargetColorIdx(null);
+                setPhase('waiting');
+                showColor(); // Rekursiv neue Farbe zeigen
+              }, 600 + Math.random() * 300);
+            } else {
+              // Spieler-Farbe: Timeout nach 750ms
+              timeoutRef.current = setTimeout(() => {
+                handleTimeout(colorIdx, colors);
+              }, 750);
+            }
+          }, delay);
+        };
+        
+        showColor();
       };
 
       const handleTimeout = (colorIdx, colors) => {
         if (tapped !== null) return;
         clearTimeout(disappearRef.current);
         
-        // Prüfen ob ein Spieler diese Farbe hat
-        const playerWithColor = colorIdx < players.length ? players[colorIdx].name : null;
-        
-        if (playerWithColor) {
-          // Ein Spieler hätte tippen müssen
+        // Nur Spieler-Farben können Timeout haben
+        if (colorIdx < players.length) {
+          const playerWithColor = players[colorIdx].name;
           setRoundResult({type: 'timeout', loser: playerWithColor});
           setPlayers(ps => ps.map(p => p.name === playerWithColor ? {...p, drinks: p.drinks + 1} : p));
-        } else {
-          // Keiner durfte tippen - alle haben richtig gewartet!
-          setRoundResult({type: 'nobody', msg: 'Niemand durfte tippen - gut aufgepasst!'});
+          setPhase('result');
         }
-        setPhase('result');
       };
 
       const handleTap = (playerIdx) => {
@@ -790,6 +807,14 @@
         setReactionTime(time);
         setTapped(playerIdx);
         
+        // Extra-Farbe? Dann darf NIEMAND tippen!
+        if (targetColorIdx >= players.length) {
+          setRoundResult({type: 'wrong', loser: players[playerIdx].name, correctColor: 'NIEMAND (Extra-Farbe!)'});
+          setPlayers(ps => ps.map((p, i) => i === playerIdx ? {...p, drinks: p.drinks + 2} : p));
+          setPhase('result');
+          return;
+        }
+        
         // Hat der Spieler die richtige Farbe?
         if (playerIdx === targetColorIdx) {
           // Richtig!
@@ -797,7 +822,7 @@
           // Alle anderen trinken
           setPlayers(ps => ps.map((p, i) => i !== playerIdx ? {...p, drinks: p.drinks + 1} : p));
         } else {
-          // Falsch! (entweder falsche Farbe oder Extra-Farbe ohne Spieler)
+          // Falsch! (falsche Spieler-Farbe)
           setRoundResult({type: 'wrong', loser: players[playerIdx].name, correctColor: playerColors[targetColorIdx]?.name || 'NIEMAND'});
           setPlayers(ps => ps.map((p, i) => i === playerIdx ? {...p, drinks: p.drinks + 2} : p));
         }
@@ -986,19 +1011,8 @@
             clearInterval(barIntervalRef.current);
             
             if (!blind) {
-              setTimeout(() => {
-                setPhase('countdown');
-                setCountdown(3);
-                let count = 3;
-                const countdownInterval = setInterval(() => {
-                  count--;
-                  setCountdown(count);
-                  if (count <= 0) {
-                    clearInterval(countdownInterval);
-                    startBeats(true);
-                  }
-                }, 1000);
-              }, 1000);
+              // Direkt weitermachen ohne Pause!
+              startBeats(true);
             } else {
               setTimeout(() => calculateResults(), 500);
             }
